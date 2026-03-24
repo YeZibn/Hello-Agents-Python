@@ -208,43 +208,248 @@ class RAGManager:
         
         return markdown_text
     
-    def _chunk_text(self, text: str, chunk_size: int = 500, overlap: int = 50) -> List[Dict]:
-        """将文本分块"""
+    def _chunk_text(self, text: str, chunk_size: int = 200, overlap: int = 20) -> List[Dict]:
+        """将文本递归分块
+        
+        递归分块策略:
+        1. 首先按标题和段落分割成语义单元
+        2. 如果单元大小合适则保留
+        3. 如果太大则按句子分割
+        4. 如果句子仍太大则按单词递归分割
+        """
         paragraphs = self._split_paragraphs(text)
+        return self._recursive_chunk(paragraphs, chunk_size, overlap)
+    
+    def _recursive_chunk(self, elements: List[Dict], chunk_size: int, overlap: int) -> List[Dict]:
+        """递归分块主逻辑
+        
+        Args:
+            elements: 要分块的元素列表，每个元素包含content和heading_path
+            chunk_size: 最大块大小（字符数）
+            overlap: 块之间的重叠大小
+        
+        Returns:
+            分块后的列表
+        """
         chunks = []
         
-        current_chunk = []
+        if not elements:
+            return chunks
+        
+        current_group = []
         current_size = 0
         
-        for para in paragraphs:
-            para_size = len(para["content"])
+        for element in elements:
+            element_size = len(element["content"])
             
-            if current_size + para_size > chunk_size and current_chunk:
-                chunk_text = "\n\n".join(p["content"] for p in current_chunk)
+            if current_size + element_size > chunk_size and current_group:
+                chunk_text = "\n\n".join(p["content"] for p in current_group)
                 chunks.append({
                     "content": chunk_text,
-                    "heading_path": current_chunk[0].get("heading_path"),
-                    "start": current_chunk[0]["start"],
-                    "end": current_chunk[-1]["end"]
+                    "heading_path": current_group[0].get("heading_path"),
+                    "start": current_group[0]["start"],
+                    "end": current_group[-1]["end"]
                 })
                 
-                overlap_paras = current_chunk[-1:] if overlap > 0 else []
-                current_chunk = overlap_paras
-                current_size = sum(len(p["content"]) for p in overlap_paras)
+                if overlap > 0:
+                    overlap_text = self._get_overlap_content(chunk_text, overlap)
+                    if overlap_text:
+                        overlap_element = {
+                            "content": overlap_text,
+                            "heading_path": current_group[-1].get("heading_path"),
+                            "start": current_group[-1]["end"] - len(overlap_text),
+                            "end": current_group[-1]["end"],
+                            "is_overlap": True
+                        }
+                        current_group = [overlap_element]
+                        current_size = len(overlap_text)
+                    else:
+                        current_group = []
+                        current_size = 0
+                else:
+                    current_group = []
+                    current_size = 0
             
-            current_chunk.append(para)
-            current_size += para_size
+            if element_size > chunk_size:
+                if current_group:
+                    chunk_text = "\n\n".join(p["content"] for p in current_group)
+                    chunks.append({
+                        "content": chunk_text,
+                        "heading_path": current_group[0].get("heading_path"),
+                        "start": current_group[0]["start"],
+                        "end": current_group[-1]["end"]
+                    })
+                    current_group = []
+                    current_size = 0
+                
+                sub_chunks = self._split_element(element, chunk_size, overlap)
+                chunks.extend(sub_chunks)
+            else:
+                current_group.append(element)
+                current_size += element_size
         
-        if current_chunk:
-            chunk_text = "\n\n".join(p["content"] for p in current_chunk)
+        if current_group:
+            chunk_text = "\n\n".join(p["content"] for p in current_group)
             chunks.append({
                 "content": chunk_text,
-                "heading_path": current_chunk[0].get("heading_path"),
-                "start": current_chunk[0]["start"],
-                "end": current_chunk[-1]["end"]
+                "heading_path": current_group[0].get("heading_path"),
+                "start": current_group[0]["start"],
+                "end": current_group[-1]["end"]
             })
         
         return chunks
+    
+    def _get_overlap_content(self, text: str, overlap_size: int) -> str:
+        """获取文本末尾的overlap内容
+        
+        优先在句子边界分割，避免截断句子。
+        
+        Args:
+            text: 原始文本
+            overlap_size: overlap大小（字符数）
+        
+        Returns:
+            overlap文本
+        """
+        if len(text) <= overlap_size:
+            return text
+        
+        overlap_text = text[-overlap_size:]
+        
+        sentence_endings = ['。', '！', '？', '.', '!', '?', '\n']
+        
+        for i, char in enumerate(overlap_text):
+            if char in sentence_endings:
+                return overlap_text[i+1:].strip()
+        
+        return overlap_text
+    
+    def _split_element(self, element: Dict, chunk_size: int, overlap: int) -> List[Dict]:
+        """拆分过大的元素
+        
+        按句子级别进行拆分，保留标题上下文。
+        
+        Args:
+            element: 要拆分的元素
+            chunk_size: 最大块大小
+            overlap: 重叠大小
+        
+        Returns:
+            拆分后的块列表
+        """
+        content = element["content"]
+        heading_path = element.get("heading_path")
+        start_pos = element.get("start", 0)
+        
+        sentences = self._split_sentences(content)
+        
+        if len(sentences) <= 1:
+            return self._split_by_words(element, chunk_size)
+        
+        sentence_elements = []
+        for sentence in sentences:
+            sentence_start = content.find(sentence)
+            if sentence_start == -1:
+                sentence_start = 0
+            sentence_elements.append({
+                "content": sentence,
+                "heading_path": heading_path,
+                "start": start_pos + sentence_start,
+                "end": start_pos + sentence_start + len(sentence)
+            })
+        
+        sub_chunks = self._recursive_chunk(sentence_elements, chunk_size, overlap)
+        
+        if not sub_chunks:
+            return self._split_by_words(element, chunk_size)
+        
+        return sub_chunks
+    
+    def _split_by_words(self, element: Dict, chunk_size: int) -> List[Dict]:
+        """按单词/字符级别拆分元素
+        
+        当无法按句子拆分时使用此方法。
+        
+        Args:
+            element: 要拆分的元素
+            chunk_size: 最大块大小
+        
+        Returns:
+            拆分后的块列表
+        """
+        import re
+        
+        content = element["content"]
+        heading_path = element.get("heading_path")
+        start_pos = element.get("start", 0)
+        
+        chinese_chars = re.findall(r'[\u4e00-\u9fff]|[^\u4e00-\u9fff]+', content)
+        
+        if not chinese_chars:
+            chinese_chars = list(content)
+        
+        chunks = []
+        current_chars = []
+        current_size = 0
+        
+        for chars in chinese_chars:
+            char_len = len(chars)
+            
+            if current_size + char_len > chunk_size and current_chars:
+                chunk_text = ''.join(current_chars)
+                chunks.append({
+                    "content": chunk_text,
+                    "heading_path": heading_path,
+                    "start": start_pos,
+                    "end": start_pos + len(chunk_text)
+                })
+                start_pos += len(chunk_text)
+                current_chars = []
+                current_size = 0
+            
+            current_chars.append(chars)
+            current_size += char_len
+        
+        if current_chars:
+            chunk_text = ''.join(current_chars)
+            chunks.append({
+                "content": chunk_text,
+                "heading_path": heading_path,
+                "start": start_pos,
+                "end": start_pos + len(chunk_text)
+            })
+        
+        return chunks
+    
+    def _split_sentences(self, text: str) -> List[str]:
+        """按句子分割文本
+        
+        支持中文和英文标点符号。
+        
+        Args:
+            text: 要分割的文本
+        
+        Returns:
+            句子列表
+        """
+        import re
+        
+        sentence_endings = r'[。！？.!?]+'
+        parts = re.split(sentence_endings, text)
+        
+        sentences = []
+        for i, part in enumerate(parts):
+            part = part.strip()
+            if not part:
+                continue
+            
+            if i < len(parts) - 1:
+                sentences.append(part)
+            else:
+                if part:
+                    sentences.append(part)
+        
+        return sentences
     
     def _split_paragraphs(self, text: str) -> List[Dict]:
         """分割段落"""
