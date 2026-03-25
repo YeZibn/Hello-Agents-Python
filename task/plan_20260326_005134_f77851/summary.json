@@ -1,0 +1,13 @@
+{
+  "plan_id": "plan_20260326_005134_f77851",
+  "updated_at": "2026-03-26T00:54:08.365562",
+  "status_counts": {
+    "pending": 0,
+    "running": 0,
+    "completed": 9,
+    "failed": 0,
+    "skipped": 0
+  },
+  "total_tasks": 9,
+  "is_completed": true
+}

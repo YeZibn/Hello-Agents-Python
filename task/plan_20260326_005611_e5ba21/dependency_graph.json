@@ -1,0 +1,11 @@
+{
+  "nodes": [
+    {
+      "id": "task_1",
+      "label": "抱歉，我无法在限定步数内完成这个任务。",
+      "role": "manager",
+      "status": "pending"
+    }
+  ],
+  "edges": []
+}

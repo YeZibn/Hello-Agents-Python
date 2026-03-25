@@ -1,0 +1,92 @@
+{
+  "nodes": [
+    {
+      "id": "task_1",
+      "label": "确定AI研究的具体主题、范围和目标，明确研究方向",
+      "role": "manager",
+      "status": "pending"
+    },
+    {
+      "id": "task_2",
+      "label": "搜集AI相关的最新技术动态、行业应用和发展趋势等信息",
+      "role": "researcher",
+      "status": "pending"
+    },
+    {
+      "id": "task_3",
+      "label": "对收集的AI资料进行整理、分析和提炼关键洞察",
+      "role": "analyst",
+      "status": "pending"
+    },
+    {
+      "id": "task_4",
+      "label": "制定AI研究报告的大纲结构",
+      "role": "writer",
+      "status": "pending"
+    },
+    {
+      "id": "task_5",
+      "label": "根据大纲撰写AI研究报告的完整内容",
+      "role": "writer",
+      "status": "pending"
+    },
+    {
+      "id": "task_6",
+      "label": "审核和校对AI研究报告的内容质量和准确性",
+      "role": "analyst",
+      "status": "pending"
+    },
+    {
+      "id": "task_7",
+      "label": "根据审核意见修改完善AI研究报告",
+      "role": "writer",
+      "status": "pending"
+    },
+    {
+      "id": "task_8",
+      "label": "检查并确保result目录存在，如不存在则创建",
+      "role": "coder",
+      "status": "pending"
+    },
+    {
+      "id": "task_9",
+      "label": "将最终的AI研究报告保存到项目的result目录下",
+      "role": "coder",
+      "status": "pending"
+    }
+  ],
+  "edges": [
+    {
+      "from": "task_1",
+      "to": "task_2"
+    },
+    {
+      "from": "task_2",
+      "to": "task_3"
+    },
+    {
+      "from": "task_3",
+      "to": "task_4"
+    },
+    {
+      "from": "task_4",
+      "to": "task_5"
+    },
+    {
+      "from": "task_5",
+      "to": "task_6"
+    },
+    {
+      "from": "task_6",
+      "to": "task_7"
+    },
+    {
+      "from": "task_7",
+      "to": "task_9"
+    },
+    {
+      "from": "task_8",
+      "to": "task_9"
+    }
+  ]
+}
