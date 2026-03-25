@@ -11,6 +11,8 @@ from synth_agent.tool.tool_list.write_tool import WriteTool
 from synth_agent.tool.tool_list.read_tool import ReadTool
 from synth_agent.config.memory_config import MemoryConfig
 from synth_agent.rag.rag_tool import RAGTool
+from synth_agent.tool.tool_list.web.baidu_search_tool import BaiduSearchTool
+from synth_agent.tool.tool_list.web.url_search_tool import UrlSearchTool
 
 
 
@@ -228,24 +230,28 @@ class ReActAgent(Agent):
 if __name__ == "__main__":
     llm = SynthLLM()
     tool_registry = ToolRegistry()
-    memory_config = MemoryConfig(database_path="travel_memory.db")
 
-    bash_tool = BashTool()
-    read_tool = ReadTool()
-    write_tool = WriteTool()
-    memory_tool = MemoryTool(user_id="user_xiaohong", memory_config=memory_config)
-    rag_tool = RAGTool(user_id="user_xiaohong", rag_config=rag_config)
+    # bash_tool = BashTool()
+    # read_tool = ReadTool()
+    # write_tool = WriteTool()
+    # memory_tool = MemoryTool(user_id="user_xiaohong", memory_config=memory_config)
+    # rag_tool = RAGTool(user_id="user_xiaohong", rag_config=rag_config)
+    baidu_search_tool = BaiduSearchTool()
+    url_search_tool = UrlSearchTool()
     
-    tool_registry.register_tool(bash_tool)
-    tool_registry.register_tool(read_tool)
-    tool_registry.register_tool(write_tool)
-    tool_registry.register_tool(memory_tool)
-    tool_registry.register_tool(rag_tool)
+    # tool_registry.register_tool(bash_tool)
+    # tool_registry.register_tool(read_tool)
+    # tool_registry.register_tool(write_tool)
+    # tool_registry.register_tool(memory_tool)
+    # tool_registry.register_tool(rag_tool)
+    tool_registry.register_tool(baidu_search_tool)
+    tool_registry.register_tool(url_search_tool)
     
     agent = ReActAgent(
         name="HelloAgent", 
         llm=llm, 
         tool_registry=tool_registry, 
-        config=Config()
+        config=Config(),
+        system_prompt="请借助网络搜索功能"
     )
-    agent.run("请问不可申请退换货的情形有哪些？")
+    agent.run("张雪峰怎么了？他死了吗")
