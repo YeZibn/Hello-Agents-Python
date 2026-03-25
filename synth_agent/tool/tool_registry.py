@@ -1,5 +1,5 @@
 from synth_agent.tool.tool import Tool
-from typing import List
+from typing import List, Dict
 from synth_agent.tool.tool_list.bash_tool import BashTool
 import re
 
@@ -35,7 +35,7 @@ class ToolRegistry:
                 param_info.append(f"{param.name}({param.type}, {required}): {param.description}")
             
             param_str = "\n    ".join(param_info) if param_info else "无参数"
-            descriptions.append(f"## {tool.name}\n{tool.description}\n参数:\n    {param_str}")
+            descriptions.append(f"## {tool.name}\n{tool.description}\n参数:\n    {param_str}{dep_str}")
 
         return "\n\n".join(descriptions) if descriptions else "暂无可用工具"
 

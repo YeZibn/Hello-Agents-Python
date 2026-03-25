@@ -51,11 +51,15 @@ class BaseWebTool(Tool):
                 return {"success": False, "error": f"不支持的请求方法: {method}"}
 
             with urllib.request.urlopen(req, timeout=self.timeout) as response:
+                content_type = response.headers.get("Content-Type", "")
+                charset = self._extract_charset(content_type)
+                raw_body = response.read()
+                body = self._decode_body(raw_body, charset)
                 return {
                     "success": True,
                     "status_code": response.status,
                     "headers": dict(response.headers),
-                    "body": response.read().decode("utf-8")
+                    "body": body
                 }
         except urllib.error.HTTPError as e:
             return {"success": False, "error": f"HTTP错误: {e.code} - {e.reason}"}
@@ -69,3 +73,21 @@ class BaseWebTool(Tool):
 
     def _post(self, url: str, data: Optional[Dict] = None, headers: Optional[Dict] = None) -> Dict[str, Any]:
         return self._make_request(url, method="POST", data=data, headers=headers)
+
+    def _extract_charset(self, content_type: str) -> str:
+        import re
+        match = re.search(r'charset=([^\s;]+)', content_type)
+        return match.group(1) if match else ""
+
+    def _decode_body(self, raw_body: bytes, charset: str) -> str:
+        if not charset:
+            for enc in ["utf-8", "gbk", "gb2312", "gb18030", "big5"]:
+                try:
+                    return raw_body.decode(enc)
+                except (UnicodeDecodeError, LookupError):
+                    continue
+            return raw_body.decode("utf-8", errors="replace")
+        try:
+            return raw_body.decode(charset)
+        except (UnicodeDecodeError, LookupError):
+            return raw_body.decode("utf-8", errors="replace")

@@ -89,8 +89,14 @@ class ReActAgent(Agent):
         """
         构建消息列表
         """
+        from datetime import datetime
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        system_content = (self.system_prompt or DEFAULT_SYSTEM_PROMPT)
+        system_content = system_content.replace("{{current_time}}", current_time)
+
         messages = [
-            {"role": "system", "content": self.system_prompt or DEFAULT_SYSTEM_PROMPT}
+            {"role": "system", "content": system_content + f"\n\n当前时间: {current_time}"}
         ]
         
         messages.extend(self.current_history)
@@ -254,4 +260,4 @@ if __name__ == "__main__":
         config=Config(),
         system_prompt="请借助网络搜索功能"
     )
-    agent.run("张雪峰怎么了？他死了吗")
+    agent.run("张雪峰他死了吗")
