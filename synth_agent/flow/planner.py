@@ -70,13 +70,13 @@ class TaskPlanner:
 
         prompt = f"""请将以下任务分解为子任务，直接输出JSON格式：
 
-目标：{goal}
+                    目标：{goal}
 
-要求：
-1. 分解为 {max_tasks} 个以内的子任务
-2. 每个任务指定合适的角色
-3. 设置合理的依赖关系
-4. 直接输出JSON，不要有其他内容"""
+                    要求：
+                    1. 分解为 {max_tasks} 个以内的子任务
+                    2. 每个任务指定合适的角色
+                    3. 设置合理的依赖关系
+                    4. 直接输出JSON，不要有其他内容"""
 
         response = self.planner_agent.run(prompt)
 

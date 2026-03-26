@@ -1,7 +1,9 @@
 from synth_agent.tool.tool import Tool
 from typing import List, Dict
 from synth_agent.tool.tool_list.bash_tool import BashTool
+from synth_agent.tool.tool_list.read_tool import ReadTool
 import re
+from synth_agent.mcp.comfyImage_mcp_server import generate_image_async
 
 
 
@@ -146,12 +148,17 @@ class ToolRegistry:
         return params
 
 if __name__ == "__main__":
-    response = "Action: Finish[当前项目的最外层结构如下：项目根目录位于 D:\agentWorkShop\Hello-Agents-Python，包含1个配置文件、2个代码目录和3个文件。]"
+    tool_registry = ToolRegistry()
+
+    read_tool = ReadTool()
+    tool_registry.register_tool(read_tool)
+
+    bash_tool = BashTool()
+    tool_registry.register_tool(bash_tool)  
 
 
-    finish_match = re.search(r'Action: Finish(.*)$', response)
-    if finish_match:
-        finish_answer = finish_match.group(1).strip()
-        print(f"Finish: {finish_answer}")
+
+    tools_schema = tool_registry.get_tools_schema()
+    print(tools_schema)
         
    

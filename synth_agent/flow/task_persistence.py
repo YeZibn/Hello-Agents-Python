@@ -6,7 +6,10 @@ from synth_agent.flow.task import TaskPlan, Task, TaskStatus
 
 
 class TaskPersistence:
-    def __init__(self, base_path: str = "d:\\agentWorkShop\\Synth-Agent-Python\\task"):
+    def __init__(self, base_path: str = None):
+        if base_path is None:
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            base_path = os.path.join(project_root, "task")
         self.base_path = base_path
         self._ensure_dir()
 

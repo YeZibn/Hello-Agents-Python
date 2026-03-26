@@ -29,7 +29,7 @@ class PlanFlow:
         )
         self.persistence = persistence or TaskPersistence()
 
-        self.planner = TaskPlanner(llm, tool_registry)
+        self.planner = TaskPlanner(llm)
         self.scheduler = TaskScheduler(
             llm=llm,
             tool_registry=tool_registry,
