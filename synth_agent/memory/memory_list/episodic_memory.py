@@ -311,8 +311,7 @@ if __name__ == "__main__":
     config = MemoryConfig(
         database_path="travel_memory.db",
         qdrant_url="http://localhost:6333",
-        qdrant_api_key=None,
-        qdrant_collection_name="episodic_memory"
+        qdrant_api_key=None
     )
     
     # 初始化情景记忆
@@ -447,7 +446,7 @@ if __name__ == "__main__":
     print("\n🔍 === 测试语义检索 ===")
     print("用户问：'东京樱花赏樱地点推荐注意事项'\n")
     
-    results = memory.retrieve("东京樱花赏樱地点推荐注意事项", limit=3, user_id="user_xiaoming")
+    results = memory.retrieve("'请推荐一下京都的赏樱景点和最佳观赏时间'", limit=3, user_id="user_xiaoming")
     for i, result in enumerate(results, 1):
         user_name = result.metadata.get("user_name", "未知用户")
         print(f"  相关记忆{i} [{user_name}]: {result.content}")

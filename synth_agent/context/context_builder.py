@@ -5,6 +5,9 @@ from synth_agent.memory.memory_tool import MemoryTool
 from synth_agent.rag.rag_tool import RAGTool
 from synth_agent.context.context_packet import ContextPacket
 from synth_agent.message.message import Message
+from synth_agent.embedder.qwen_embedder import QwenEmbedder
+from synth_agent.memory.memory_manager import MemoryManager
+from synth_agent.config.memory_config import MemoryConfig
 
 
 class ContextBuilder:
@@ -13,8 +16,6 @@ class ContextBuilder:
     def __init__(
         self, 
         user_id: str,
-        memory_tool: MemoryTool = None,
-        rag_tool: RAGTool = None,
         config: ContextConfig = None
         ):
 
@@ -28,30 +29,20 @@ class ContextBuilder:
         """
         self.user_id = user_id
         self.config = config or ContextConfig()
-        self.memory_tool = memory_tool or MemoryTool(user_id)
-        self.rag_tool = rag_tool or RAGTool(user_id)
+        self.memory_manager = MemoryManager(
+            config=MemoryConfig(
+                database_path="travel_memory.db",
+                qdrant_url="http://localhost:6333",
+                qdrant_api_key=None
+            ), 
+            user_id=user_id,
+            enable_episodic=True,
+            enable_semantic=True)
+        self.rag_tool = RAGTool(user_id)
         self.embedder = self._create_embedding_model()
 
     def _create_embedding_model(self):
-        """创建嵌入模型"""
-        try:
-            import os
-            os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
-
-            from sentence_transformers import SentenceTransformer
-            model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2', 
-                          cache_folder='./models')
-            print("模型加载成功！")
-            return model
-        except Exception as e:
-            print(f"加载嵌入模型失败: {e}")
-            class SimpleEmbedder:
-                def encode(self, text: str) -> List[float]:
-                    vector = [0.0] * 384
-                    for i, c in enumerate(text[:384]):
-                        vector[i] = ord(c) / 128.0
-                    return vector
-            return SimpleEmbedder()
+        return QwenEmbedder()
 
     def build(
         self,
@@ -133,22 +124,19 @@ class ContextBuilder:
             ))
 
         # 2. 从记忆系统检索相关记忆
-        if self.memory_tool:
+        if self.memory_manager:
             try:
-                episodic_memory_results = self.memory_tool.run(
-                    action="retrieve",
+                episodic_memory_results = self.memory_manager.retrieve(
                     query=user_query,
-                    memory_type="episodic"
+                    memory_types=["episodic"]
                 )
 
-                semantic_memory_results = self.memory_tool.run(
-                    action="retrieve",
+                semantic_memory_results = self.memory_manager.retrieve(
                     query=user_query,
-                    memory_type="semantic"
+                    memory_types=["semantic"]
                 )
 
-                memory_results = {
-                }
+                memory_results = {}
 
                 memory_results["memories"] = episodic_memory_results.get("episodic", []) + semantic_memory_results.get("semantic", [])
 
@@ -161,11 +149,11 @@ class ContextBuilder:
         # 3. 从 RAG 系统检索相关知识
         if self.rag_tool:
             try:
-                rag_results = self.rag_tool.run(
-                    "search",
-                    query=user_query,
-                    top_k=5
-                )
+                rag_results = self.rag_tool.run({
+                    "action":"search",
+                    "query":user_query,
+                    "top_k":5
+                })
                 # 解析 RAG 结果并转换为 ContextPacket
                 rag_packets = self._parse_rag_results(rag_results, user_query)
                 packets.extend(rag_packets)
@@ -308,6 +296,9 @@ class ContextBuilder:
             float: 新近性分数(0.0-1.0)
         """
         import math
+
+        if isinstance(timestamp, str):
+            timestamp = datetime.fromisoformat(timestamp)
 
         age_hours = (datetime.now() - timestamp).total_seconds() / 3600
 
@@ -459,8 +450,8 @@ class ContextBuilder:
         
         for memory in memory_results.get("memories", []):
 
-            content = memory.get("content", "")
-            timestamp = memory.get("metadata", {}).get("timestamp", datetime.now())
+            content = memory.content
+            timestamp = memory.metadata.get("timestamp", datetime.now())
             
             relevance = self._calculate_relevance(content, user_query)
             
@@ -503,3 +494,35 @@ class ContextBuilder:
             ))
         
         return packets
+# 测试内容
+if __name__ == "__main__":
+    # 创建测试用的 ContextBuilder 实例
+    builder = ContextBuilder(user_id="user_xiaoming")
+    
+    # 测试查询 - 日本旅游相关
+    test_query = "请推荐一下京都的赏樱景点和最佳观赏时间"
+    
+    # 构建对话历史
+    test_history = [
+        Message(role="user", content="こんにちは"),
+        Message(role="assistant", content="こんにちは！日本旅行について何かお手伝いできることはありますか？"),
+        Message(role="user", content="京都に行きたいです"),
+    ]
+    
+    # 测试系统指令
+    test_system_instructions = "你是一个专业的日本旅游顾问，熟悉日本各地的旅游景点、美食、交通和文化，请提供详细实用的旅行建议。"
+    
+    # 执行上下文构建
+    result = builder.build(
+        user_query=test_query,
+        conversation_history=test_history,
+        system_instructions=test_system_instructions,
+        max_tokens=2048
+    )
+    
+    print("=" * 50)
+    print("构建的上下文结果：")
+    print("=" * 50)
+    print(result)
+    print("=" * 50)
+    print(f"总token数: {builder._count_tokens(result)}")

@@ -40,8 +40,7 @@ class SemanticMemory(BaseMemory):
         self.vector_store = QdrantVectorStore(
             url=config.qdrant_url,
             api_key=config.qdrant_api_key,
-            collection_name=config.qdrant_semantic_collection_name,
-            vector_size=384
+            collection_name=config.qdrant_semantic_collection_name
         )
         self.graph_store = Neo4jGraphStore(**neo4j_config)
     
@@ -595,64 +594,63 @@ if __name__ == "__main__":
         qdrant_url="http://localhost:6333",
         neo4j_uri="bolt://localhost:7687",
         neo4j_user="neo4j",
-        neo4j_password="12345678",
-        qdrant_collection_name="semantic_memory"
+        neo4j_password="12345678"
     )
     
     # 初始化语义记忆
     semantic_memory = SemanticMemory(config)
     
     # # 测试添加记忆
-    # print("=== 测试添加语义记忆 ===")
+    print("=== 测试添加语义记忆 ===")
     
-    # test_memories = [
-    #     {
-    #         "content": "张三是清华大学计算机系的教授，他专注于人工智能和机器学习研究。",
-    #         "importance": 0.9,
-    #         "metadata": {
-    #             "session_id": "session_001",
-    #             "user_id": "user_001",
-    #             "user_name": "小明",
-    #             "category": "人物介绍",
-    #             "tags": ["教授", "AI", "清华"]
-    #         }
-    #     },
-    #     {
-    #         "content": "李四在北京大学读书，他喜欢打篮球和游泳。",
-    #         "importance": 0.7,
-    #         "metadata": {
-    #             "session_id": "session_001",
-    #             "user_id": "user_001",
-    #             "user_name": "小明",
-    #             "category": "人物介绍",
-    #             "tags": ["学生", "运动"]
-    #         }
-    #     },
-    #     {
-    #         "content": "阿里巴巴集团在杭州成立了人工智能研究院。",
-    #         "importance": 0.8,
-    #         "metadata": {
-    #             "session_id": "session_002",
-    #             "user_id": "user_002",
-    #             "user_name": "小红",
-    #             "category": "新闻",
-    #             "tags": ["公司", "AI", "杭州"]
-    #         }
-    #     }
-    # ]
+    test_memories = [
+        {
+            "content": "张三是清华大学计算机系的教授，他专注于人工智能和机器学习研究。",
+            "importance": 0.9,
+            "metadata": {
+                "session_id": "session_001",
+                "user_id": "user_xiaoming",
+                "user_name": "小明",
+                "category": "人物介绍",
+                "tags": ["教授", "AI", "清华"]
+            }
+        },
+        {
+            "content": "李四在北京大学读书，他喜欢打篮球和游泳。",
+            "importance": 0.7,
+            "metadata": {
+                "session_id": "session_001",
+                "user_id": "user_xiaoming",
+                "user_name": "小明",
+                "category": "人物介绍",
+                "tags": ["学生", "运动"]
+            }
+        },
+        {
+            "content": "阿里巴巴集团在杭州成立了人工智能研究院。",
+            "importance": 0.8,
+            "metadata": {
+                "session_id": "session_002",
+                "user_id": "user_xiaoming",
+                "user_name": "小明",
+                "category": "新闻",
+                "tags": ["公司", "AI", "杭州"]
+            }
+        }
+    ]
     
-    # for i, mem_data in enumerate(test_memories):
-    #     memory_item = MemoryItem(
-    #         content=mem_data["content"],
-    #         importance=mem_data["importance"],
-    #         metadata=mem_data["metadata"]
-    #     )
-    #     semantic_memory.add(memory_item)
-    #     print()
+    for i, mem_data in enumerate(test_memories):
+        memory_item = MemoryItem(
+            content=mem_data["content"],
+            importance=mem_data["importance"],
+            metadata=mem_data["metadata"]
+        )
+        semantic_memory.add(memory_item)
+        print()
     
     # 测试检索
     print("\n=== 测试语义检索 ===")
-    results = semantic_memory.retrieve("人工智能研究", limit=3, user_id="user_001")
+    results = semantic_memory.retrieve("人工智能研究", limit=3, user_id="user_xiaoming")
     for i, result in enumerate(results, 1):
         print(f"{i}. {result.content[:50]}... (得分: {result.metadata.get('combined_score', 0):.3f})")
     

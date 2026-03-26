@@ -149,7 +149,7 @@ def submit_task(prompt: str, width: int = 1024, height: int = 1024, seed: int = 
     authorization = f"HMAC-SHA256 Credential={credential}, SignedHeaders={signed_headers}, Signature={signature}"
     
     # 添加 Authorization 到 headers
-    #headers["authorization"] = authorization
+    headers["authorization"] = authorization
     
     try:
         # 准备请求
